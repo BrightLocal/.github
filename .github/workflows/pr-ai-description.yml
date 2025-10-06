@@ -1,0 +1,90 @@
+name: pr-ai-description
+
+on:
+#  pull_request:
+#    branches:
+#      - "develop"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull Request number"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generates new PR body content
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+        env:
+          NEW_BODY: |
+            ## AUTO COMMENTS
+
+            Sample comment. 
+            It will have to be replaced by AI generated description of the changes.
+
+            - Item 1
+            - Item 2
+        run: |
+          {
+            echo "NEW_BODY<<EOF"
+            echo "$NEW_BODY"
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+      - name: Gets old PR body and removes AUTO COMMENTS section
+        id: get_old_body
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request ? context.payload.pull_request.number : context.payload.inputs.pr_number
+            });
+            // Remove everything after the first occurrence of "\n---\n" followed by "## AUTO COMMENT" (in this order)
+            let body = pr.body || '';
+            const index01 = body.indexOf('--');
+            if (index01 !== -1) {
+              const index011 = body.slice(index01 + 2);
+              const index02 = index011.indexOf('## AUTO COMMENT');
+              if (index02 !== -1) {
+                body = body.slice(0, index01);
+              }
+            }
+            return body.trim();
+
+      - name: Export OLD_BODY to $GITHUB_ENV
+        env:
+          OLD_BODY: ${{ steps.get_old_body.outputs.result }}
+        run: |
+          {
+            echo "OLD_BODY<<EOF"
+            echo "$OLD_BODY"
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+      - name: Get old PR body and append new comment
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+        uses: actions/github-script@v7
+        env:
+          APPEND_BODY: ${{ env.NEW_BODY }}
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request ? context.payload.pull_request.number : context.payload.inputs.pr_number
+            });
+            let oldBody = process.env.OLD_BODY.replace(/^"|"$/g, '').replace(/\\r\\n|\\n|\\r/g, '\n');
+            const appendBody = process.env.APPEND_BODY.replace(/\\r\\n|\\n|\\r/g, '\n');
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request ? context.payload.pull_request.number : context.payload.inputs.pr_number,
+              body: oldBody + '\n\n---\n' + appendBody
+            });
