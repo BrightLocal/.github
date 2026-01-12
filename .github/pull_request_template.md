@@ -10,7 +10,7 @@
 
 ## ⚠️ Additional comments
 
-- Fill Reviewers with additional context (ex. decisions, links, screenshots).
+- Provide reviewers with additional context (ex. decisions, links, screenshots).
 - Screenshots of the UI before and after your changes are also helpful for the history and reviewers.
 
 ## 🤖 AI Summary
