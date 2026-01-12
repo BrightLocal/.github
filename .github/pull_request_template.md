@@ -5,7 +5,7 @@
 ## 🛠️ Side effects
 
 - A list of “side effects” needed to achieve this PR's goal (technical changes).
-– Everything should be small and there shouldn't be a lot of it. Otherwise, a separate PR should be opened.
+- Everything should be small and there shouldn't be a lot of it. Otherwise, a separate PR should be opened.
 - Example: more refactoring or items unrelated to the first section.
 
 ## ⚠️ Additional comments
